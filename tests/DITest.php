@@ -17,7 +17,7 @@ class DITest extends TestCase
         $this->assertSame('First Book', $resolver->resolve($resolver->prepare([Book::class,'getName'])));
     }
 
-    public function test_call_method_with_var() : void
+    public function test_call_method_with_parameter() : void
     {
         $container = Container::instance();
         $container->setVar('name', 'PHP');
@@ -25,10 +25,31 @@ class DITest extends TestCase
         $book = new Book();
         $resolver = new Resolver;
         $resolver->resolve([$book, 'setName']);
-        $this->assertSame('PHP', $resolver->resolve($resolver->prepare([$book,'getName'])));
+        $this->assertSame('PHP', $book->getName());
     }
 
-    public function test_call_constructor_with_vars() : void
+    public function test_call_method_with_class_type_parameter() : void
+    {
+        $function = function(Book $book){
+            return $book->getName();
+        };
+
+        $container = Container::instance();
+        $resolver = new Resolver;
+        $name = $resolver->resolve($function);
+        $this->assertSame('First Book', $name);
+
+        $book = new Book();
+        $book->setName('Test Book');
+        $container->set(Book::class, $book);
+
+        $resolver = new Resolver;
+        $name = $resolver->resolve($function);
+        $this->assertSame('Test Book', $name);
+
+    }
+
+    public function test_call_constructor_with_parameters() : void
     {
         $container = Container::instance();
         $container->setVar('name', 'Mahmoud Elnezamy');
