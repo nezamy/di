@@ -1,6 +1,15 @@
 # Dependency Injection
 Dependency Injection and container
 
+## Installation via composer
+```
+composer require nezamy/di
+```
+Then load composer autoload
+```
+require __DIR__ . '/vendor/autoload.php';
+```
+
 ## Usage
 Let's say we have a `Book` class, and we need to call `getName` method.
 Whatever the method is static or not.
