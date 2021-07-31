@@ -1,6 +1,4 @@
-<?php
-
-declare(strict_types=1);
+<?php declare(strict_types=1);
 /**
  * This file is part of Just.
  *
@@ -106,5 +104,20 @@ class Container
             return $this->singletons[$class] = $this->callable_map[$class]();
         }
         throw new \LogicException("[{$class}] is not registered in Container ");
+    }
+    
+    public function remove(...$keys){
+        foreach($keys as $key) {
+            if(isset($this->singletons[$key])) unset($this->singletons[$key]);
+        }
+        $this->vars = [];
+    }
+
+    public function reset()
+    {
+        $this->singletons = [];
+        $this->callable_map = [];
+        $this->vars = [];
+        $this->magicCall = [];
     }
 }

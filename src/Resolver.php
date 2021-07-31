@@ -35,7 +35,8 @@ class Resolver
                 $callable = [new NonStaticMethod($callable), 'getCallable'];
             }
         } catch (ReflectionException $e) {
-            throw new LogicException("[{$callable}] is not callable");
+            $method = isset($callable[1]) ? '::' . $callable[1] : '';
+            throw new LogicException("[{$callable[0]}{$method}] is not callable");
         }
 
         return $callable;
@@ -129,18 +130,16 @@ class Resolver
         $dependencies = [];
 
         foreach ($parameters as $parameter) {
-            $dependency = $parameter->getClass();
+            $dependency = $parameter->getType() && !$parameter->getType()->isBuiltin() ? new ReflectionClass($parameter->getType()->getName()) : null;
             $name = $parameter->name;
             if (is_null($dependency)) {
                 $dependencies[] = $this->resolveNonClass($parameter);
+            } elseif ($this->container->hasVar($name) && $this->container->hasMagicCall($dependency->name)) {
+                $dependencies[] = $this->container->getMagicCall($dependency->name)($name, $this->container->getVar($name));
+            } elseif ($this->container->has($dependency->name)) {
+                $dependencies[] = $this->container->get($dependency->name);
             } else {
-                if ($this->container->hasVar($name) && $this->container->hasMagicCall($dependency->name)) {
-                    $dependencies[] = $this->container->getMagicCall($dependency->name)($name, $this->container->getVar($name));
-                } elseif ($this->container->has($dependency->name)) {
-                    $dependencies[] = $this->container->get($dependency->name);
-                } else {
-                    $dependencies[] = $this->class($dependency->name);
-                }
+                $dependencies[] = $this->class($dependency->name);
             }
         }
 
@@ -151,10 +150,11 @@ class Resolver
      * @throws ReflectionException
      * @return mixed
      */
-    public function resolveNonClass(ReflectionParameter $parameter)
+    private function resolveNonClass(ReflectionParameter $parameter)
     {
         if ($this->container->hasVar($parameter->name)) {
-            return $this->container->getVar($parameter->name);
+            $value = $this->container->getVar($parameter->name);
+            return $parameter->getType() ? $this->getValue($value, $parameter->getType()->getName()) : $value;
         }
         if ($parameter->isDefaultValueAvailable()) {
             return $parameter->getDefaultValue();
@@ -169,7 +169,7 @@ class Resolver
     /**
      * @return mixed
      */
-    public function defaultValue(string $type)
+    private function defaultValue(string $type)
     {
         switch ($type) {
             case 'array':
@@ -181,6 +181,21 @@ class Resolver
                 return false;
             default:
                 return null;
+        }
+    }
+
+    private function getValue($value, $type){
+        switch ($type) {
+            case 'array':
+                return is_array($value) ? $value : (array) $value;
+            case 'int':
+                return (int) $value;
+            case 'float':
+                return (float) $value;
+            case 'bool':
+                return (bool) $value;
+            default:
+                return $value;
         }
     }
 }
